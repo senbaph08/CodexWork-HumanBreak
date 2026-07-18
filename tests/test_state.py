@@ -64,6 +64,39 @@ class RestStateTests(unittest.TestCase):
         state.handle("UserPromptSubmit", payload("new", "turn"))
         self.assertFalse(state.finish_complete(old_generation))
 
+    def test_new_turn_replaces_stale_turn_in_same_session(self):
+        state = RestState()
+        state.handle("UserPromptSubmit", payload("same-session", "old-turn"))
+        state.handle("UserPromptSubmit", payload("same-session", "new-turn"))
+        self.assertEqual(len(state.tasks), 1)
+        self.assertNotIn("same-session:old-turn", state.tasks)
+        self.assertIn("same-session:new-turn", state.tasks)
+
+    def test_new_turn_keeps_tasks_from_other_sessions(self):
+        state = RestState()
+        state.handle("UserPromptSubmit", payload("session-a", "turn-1"))
+        state.handle("UserPromptSubmit", payload("session-b", "turn-1"))
+        state.handle("UserPromptSubmit", payload("session-a", "turn-2"))
+        self.assertEqual(len(state.tasks), 2)
+        self.assertIn("session-b:turn-1", state.tasks)
+
+    def test_reset_clears_tasks_without_finishing(self):
+        state = RestState()
+        state.handle("UserPromptSubmit", payload())
+        actions, cleared_count = state.reset()
+        self.assertEqual(actions, ["close"])
+        self.assertEqual(cleared_count, 1)
+        self.assertEqual(state.phase, "idle")
+        self.assertIsNone(state.started_at)
+        self.assertEqual(state.snapshot()["active_count"], 0)
+
+    def test_delayed_stop_after_reset_is_ignored(self):
+        state = RestState()
+        state.handle("UserPromptSubmit", payload())
+        state.reset()
+        self.assertEqual(state.handle("Stop", payload()), [])
+        self.assertEqual(state.phase, "idle")
+
 
 if __name__ == "__main__":
     unittest.main()

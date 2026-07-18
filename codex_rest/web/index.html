@@ -67,6 +67,17 @@
         <div id="uploadStatus" class="status" role="status"></div>
         <ul id="trackList" class="track-list"></ul>
       </section>
+
+      <section class="settings-section reset-section" aria-labelledby="resetHeading">
+        <h2 id="resetHeading">タスク状態</h2>
+        <p id="taskStateSummary" class="state-summary" aria-live="polite">状態を確認しています…</p>
+        <p class="setting-help">
+          作業中にCodexのタスクをアーカイブした場合など、休憩画面が終了しないときに使います。
+          設定と音源は削除されません。
+        </p>
+        <button id="resetTaskState" class="danger-button" type="button">状態をリセット</button>
+        <div id="resetStatus" class="status" role="status"></div>
+      </section>
     </div>
   </main>
 

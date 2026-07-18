@@ -17,13 +17,31 @@ class RestState:
         turn = str(payload.get("turn_id") or "unknown-turn")
         return session + ":" + turn
 
+    @staticmethod
+    def task_ids(payload):
+        return (
+            str(payload.get("session_id") or "unknown-session"),
+            str(payload.get("turn_id") or "unknown-turn"),
+        )
+
     def handle(self, event_name, payload):
         key = self.task_key(payload)
         actions = []
 
         if event_name == "UserPromptSubmit":
+            session, turn = self.task_ids(payload)
+            # A Codex session can only have one active turn. If Stop was lost
+            # (for example because the thread was archived), a later turn in
+            # that same session supersedes the stale entry.
+            for stale_key, task in list(self.tasks.items()):
+                if task["session_id"] == session and task["turn_id"] != turn:
+                    self.tasks.pop(stale_key, None)
             was_empty = not self.tasks
-            self.tasks[key] = {"paused": False}
+            self.tasks[key] = {
+                "paused": False,
+                "session_id": session,
+                "turn_id": turn,
+            }
             self.suppressed = False
             self.generation += 1
             self.phase = "active"
@@ -48,7 +66,11 @@ class RestState:
                     actions.append("open")
 
         elif event_name == "Stop":
-            self.tasks.pop(key, None)
+            removed = self.tasks.pop(key, None)
+            # Ignore a delayed or duplicate Stop. In particular, it must not
+            # produce a completion chime after the user has reset the state.
+            if removed is None:
+                return []
             if not self.tasks:
                 self.generation += 1
                 self.phase = "finishing"
@@ -71,6 +93,16 @@ class RestState:
     def manual_close(self):
         self.suppressed = True
         return ["close"]
+
+    def reset(self):
+        """Forget all tracked work without treating it as task completion."""
+        cleared_count = len(self.tasks)
+        self.tasks.clear()
+        self.suppressed = False
+        self.phase = "idle"
+        self.started_at = None
+        self.generation += 1
+        return ["close"], cleared_count
 
     def finish_complete(self, generation):
         if generation == self.generation and not self.tasks:
