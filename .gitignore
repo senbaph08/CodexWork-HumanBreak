@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Build output
+build/
+dist/
+*.app/
+*.dSYM/
+
+# Local configuration and media
+.env
+config.json
+media/
+run/
+
+# IDE
+.idea/
+.vscode/
+*.xcuserstate
