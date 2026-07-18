@@ -94,6 +94,13 @@ class RestController:
             actions = self.state.manual_close()
         self._apply(actions, self.state.generation)
 
+    def reset_state(self):
+        with self.lock:
+            actions, cleared_count = self.state.reset()
+            generation = self.state.generation
+        self._apply(actions, generation)
+        return cleared_count
+
     def _apply(self, actions, generation):
         for action in actions:
             if action == "open":
@@ -290,6 +297,13 @@ class RestRequestHandler(BaseHTTPRequestHandler):
             elif path == "/api/close":
                 self.controller.manual_close()
                 self._json(200, {"ok": True})
+            elif path == "/api/reset":
+                cleared_count = self.controller.reset_state()
+                self._json(200, {
+                    "ok": True,
+                    "cleared_count": cleared_count,
+                    "state": self.controller.snapshot(),
+                })
             elif path == "/api/tracks":
                 self._upload_track()
             elif path == "/api/shutdown":

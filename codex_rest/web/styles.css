@@ -90,7 +90,7 @@ button { color: inherit; }
   gap: 10px;
 }
 
-.toggle, .quiet-button, .upload-button {
+.toggle, .quiet-button, .upload-button, .danger-button {
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--glass);
@@ -102,7 +102,7 @@ button { color: inherit; }
 .toggle strong { min-width: 28px; color: #ffd5a5; font-size: 12px; }
 .toggle[aria-pressed="false"] { opacity: .62; }
 .toggle[aria-pressed="false"] strong { color: rgba(255,255,255,.55); }
-.toggle:focus-visible, .quiet-button:focus-visible, input:focus-visible, select:focus-visible, .upload-button:focus-within { outline: 3px solid #ffd5a5; outline-offset: 3px; }
+.toggle:focus-visible, .quiet-button:focus-visible, .danger-button:focus-visible, input:focus-visible, select:focus-visible, .upload-button:focus-within { outline: 3px solid #ffd5a5; outline-offset: 3px; }
 
 .detail-controls {
   position: fixed;
@@ -139,6 +139,11 @@ select { color: #2e1c2d; padding: 8px; border-radius: 9px; }
 .track-list { list-style: none; margin: 10px 0 0; padding: 0; }
 .track-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .track-list button { border: 0; background: transparent; cursor: pointer; color: #ffd5a5; }
+.state-summary { margin: 16px 0 8px; font-weight: 600; color: #ffd5a5; }
+.setting-help { max-width: 60ch; color: var(--muted); line-height: 1.7; }
+.danger-button { margin-top: 8px; padding: 11px 16px; border-color: rgba(255, 198, 170, .44); }
+.danger-button:hover { background: rgba(143, 58, 68, .38); }
+.danger-button:disabled { cursor: not-allowed; opacity: .5; }
 
 @media (max-width: 720px) {
   .quick-controls { left: 16px; right: 16px; justify-content: center; flex-wrap: wrap; }

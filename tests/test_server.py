@@ -66,6 +66,16 @@ class ControllerTests(unittest.TestCase):
         self.controller.handle_hook("PermissionRequest", payload)
         self.assertTrue(process.terminated)
 
+    def test_reset_closes_browser_and_clears_tasks_without_chime(self):
+        self.controller.handle_hook("UserPromptSubmit", {"session_id": "a", "turn_id": "1"})
+        process = self.launched[0]
+        with patch.object(self.controller, "_play_completion_chime") as play_chime:
+            self.assertEqual(self.controller.reset_state(), 1)
+        self.assertTrue(process.terminated)
+        self.assertEqual(self.controller.snapshot()["active_count"], 0)
+        self.assertEqual(self.controller.state.phase, "idle")
+        play_chime.assert_not_called()
+
     def test_chime_is_valid_wave(self):
         target = self.home / "chime.wav"
         create_chime(target)
@@ -130,6 +140,19 @@ class HTTPServerTests(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError) as caught:
             self.request("/api/settings", method="POST", body=b"{}", headers={"Origin": "https://example.com"})
         self.assertEqual(caught.exception.code, 403)
+
+    def test_reset_endpoint_clears_active_tasks(self):
+        self.controller.handle_hook("UserPromptSubmit", {"session_id": "a", "turn_id": "1"})
+        with self.request("/api/reset", method="POST", body=b"{}") as response:
+            result = __import__("json").loads(response.read().decode("utf-8"))
+        self.assertEqual(result["cleared_count"], 1)
+        self.assertEqual(result["state"]["active_count"], 0)
+
+    def test_settings_page_contains_reset_control(self):
+        with self.request("/settings", token=False) as response:
+            page = response.read().decode("utf-8")
+        self.assertIn('id="resetTaskState"', page)
+        self.assertIn("状態をリセット", page)
 
     def test_track_upload_and_byte_range(self):
         with self.request(

@@ -156,6 +156,20 @@
     document.getElementById("chimeVolume").value = settings.completion_volume;
   };
 
+  const syncTaskState = state => {
+    const summary = document.getElementById("taskStateSummary");
+    const resetButton = document.getElementById("resetTaskState");
+    if (!summary || !resetButton) return;
+    if (state.active_count === 0) {
+      summary.textContent = "現在、残っているタスクはありません。";
+      resetButton.disabled = true;
+    } else {
+      const paused = state.paused_count ? `（承認待ち ${state.paused_count} 件）` : "";
+      summary.textContent = `稼働中と認識しているタスク: ${state.active_count} 件${paused}`;
+      resetButton.disabled = false;
+    }
+  };
+
   const finish = () => {
     if (finishing) return;
     finishing = true;
@@ -173,7 +187,10 @@
         if (!previous && state.settings.music_enabled) startMusic();
         if (state.phase === "finishing") finish();
         if (state.phase === "active" && finishing) location.reload();
-      } else renderSettings(state.settings);
+      } else {
+        renderSettings(state.settings);
+        syncTaskState(state);
+      }
     } catch (_) {}
   };
 
@@ -248,6 +265,25 @@
     document.getElementById("settingsChimeVolume").addEventListener("change", event => saveSettings({completion_volume: Number(event.target.value)}));
     document.querySelectorAll('input[name="musicSource"]').forEach(input => input.addEventListener("change", event => saveSettings({music_source: event.target.value})));
     document.getElementById("playlistOrder").addEventListener("change", event => saveSettings({playlist_order: event.target.value}));
+    document.getElementById("resetTaskState").addEventListener("click", async event => {
+      const activeCount = currentState?.active_count || 0;
+      if (!activeCount) return;
+      if (!window.confirm(
+        `Codex Restが記憶している ${activeCount} 件のタスクを解除しますか？\n設定と音源は削除されません。`
+      )) return;
+      const status = document.getElementById("resetStatus");
+      event.currentTarget.disabled = true;
+      status.textContent = "状態をリセットしています…";
+      try {
+        const result = await api("/api/reset", {method: "POST", body: "{}"});
+        currentState = result.state;
+        syncTaskState(currentState);
+        status.textContent = `${result.cleared_count} 件を解除しました。次のプロンプトから通常どおり動作します。`;
+      } catch (error) {
+        event.currentTarget.disabled = false;
+        status.textContent = `リセットできませんでした: ${error.message}`;
+      }
+    });
     document.getElementById("trackUpload").addEventListener("change", async event => {
       const status = document.getElementById("uploadStatus");
       for (const file of event.target.files) {

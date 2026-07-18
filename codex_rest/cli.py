@@ -59,6 +59,16 @@ def command_start(_args):
     return 0
 
 
+def command_reset(_args):
+    try:
+        result = request("/api/reset", method="POST", data={}, ensure=False)
+    except Exception:
+        print("Codex Rest: 停止中（リセットは不要です）")
+        return 0
+    print("状態をリセットしました（{} 件を解除）。".format(result["cleared_count"]))
+    return 0
+
+
 def command_doctor(_args):
     checks = []
     checks.append((platform.system() == "Darwin", "macOS", platform.platform()))
@@ -97,6 +107,7 @@ def build_parser():
     commands.add_parser("settings").set_defaults(func=command_settings)
     commands.add_parser("status").set_defaults(func=command_status)
     commands.add_parser("start", help="バックエンドを起動").set_defaults(func=command_start)
+    commands.add_parser("reset", help="残ったタスク状態を解除").set_defaults(func=command_reset)
     commands.add_parser("doctor").set_defaults(func=command_doctor)
     install_parser = commands.add_parser("install")
     install_parser.set_defaults(func=lambda _args: (print("Installed: {}".format(install())) or 0))
