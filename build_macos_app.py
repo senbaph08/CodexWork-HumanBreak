@@ -8,6 +8,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from codex_rest import __version__
+
 
 ROOT = Path(__file__).resolve().parent
 BUILD = ROOT / "build"
@@ -46,7 +48,7 @@ def build():
         "CFBundleInfoDictionaryVersion": "6.0",
         "CFBundleName": "Codex Rest",
         "CFBundlePackageType": "APPL",
-        "CFBundleShortVersionString": "1.0.0",
+        "CFBundleShortVersionString": __version__,
         "CFBundleVersion": "1",
         "LSMinimumSystemVersion": "13.0",
         "NSHighResolutionCapable": True,

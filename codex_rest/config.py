@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import threading
+import urllib.parse
 import uuid
 from pathlib import Path
 
@@ -16,10 +17,38 @@ DEFAULT_CONFIG = {
     "music_source": "builtin",
     "playlist_order": "sequential",
     "tracks": [],
+    "radio_mode": "selectable",
+    "radio_station_id": None,
+    "radio_stations": [],
 }
 
 ALLOWED_EXTENSIONS = {".mp3", ".m4a", ".aac", ".wav", ".ogg", ".flac"}
 MAX_TRACK_BYTES = 250 * 1024 * 1024
+MAX_RADIO_NAME_LENGTH = 120
+MAX_RADIO_URL_LENGTH = 2048
+
+
+def normalize_radio_url(value):
+    url = str(value or "").strip()
+    if not url or len(url) > MAX_RADIO_URL_LENGTH:
+        raise ValueError("ラジオ局URLを入力してください")
+    if any(ord(character) < 32 or ord(character) == 127 for character in url):
+        raise ValueError("ラジオ局URLに制御文字は使用できません")
+    parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
+        raise ValueError("ラジオ局URLはhttp://またはhttps://で指定してください")
+    if parsed.username or parsed.password:
+        raise ValueError("認証情報を含むURLは登録できません")
+    return url
+
+
+def normalize_radio_name(value, url):
+    name = str(value or "").strip()
+    if not name:
+        name = urllib.parse.urlsplit(url).hostname or "Internet Radio"
+    if len(name) > MAX_RADIO_NAME_LENGTH:
+        raise ValueError("ラジオ局名は120文字以下にしてください")
+    return name
 
 
 class ConfigStore:
@@ -38,6 +67,24 @@ class ConfigStore:
             except (FileNotFoundError, json.JSONDecodeError, OSError):
                 pass
             data["tracks"] = [t for t in data.get("tracks", []) if isinstance(t, dict)]
+            stations = []
+            for station in data.get("radio_stations", []):
+                if not isinstance(station, dict) or not station.get("id"):
+                    continue
+                try:
+                    url = normalize_radio_url(station.get("url"))
+                    name = normalize_radio_name(station.get("name"), url)
+                except ValueError:
+                    continue
+                stations.append({"id": str(station["id"]), "name": name, "url": url})
+            data["radio_stations"] = stations
+            station_ids = {station["id"] for station in stations}
+            if data.get("radio_station_id") not in station_ids:
+                data["radio_station_id"] = stations[0]["id"] if stations else None
+            if data.get("radio_mode") not in {"selectable", "random_locked"}:
+                data["radio_mode"] = "selectable"
+            if data.get("music_source") not in {"builtin", "playlist", "radio"}:
+                data["music_source"] = "builtin"
             return data
 
     def save(self, data):
@@ -63,6 +110,7 @@ class ConfigStore:
         allowed = {
             "music_enabled", "completion_sound_enabled", "music_volume",
             "completion_volume", "music_source", "playlist_order",
+            "radio_mode", "radio_station_id",
         }
         clean = {key: value for key, value in changes.items() if key in allowed}
         for key in ("music_enabled", "completion_sound_enabled"):
@@ -71,13 +119,46 @@ class ConfigStore:
         for key in ("music_volume", "completion_volume"):
             if key in clean:
                 clean[key] = max(0.0, min(1.0, float(clean[key])))
-        if clean.get("music_source") not in (None, "builtin", "playlist"):
+        if clean.get("music_source") not in (None, "builtin", "playlist", "radio"):
             clean.pop("music_source", None)
         if clean.get("playlist_order") not in (None, "sequential", "shuffle"):
             clean.pop("playlist_order", None)
         data = self.load()
+        if clean.get("radio_mode") not in (None, "selectable", "random_locked"):
+            clean.pop("radio_mode", None)
+        if "radio_station_id" in clean:
+            station_ids = {station["id"] for station in data["radio_stations"]}
+            if clean["radio_station_id"] not in station_ids:
+                clean.pop("radio_station_id", None)
         data.update(clean)
         return self.save(data)
+
+    def add_radio_station(self, name, url):
+        clean_url = normalize_radio_url(url)
+        clean_name = normalize_radio_name(name, clean_url)
+        data = self.load()
+        if any(station["url"] == clean_url for station in data["radio_stations"]):
+            raise ValueError("このラジオ局URLは登録済みです")
+        station = {"id": uuid.uuid4().hex, "name": clean_name, "url": clean_url}
+        data["radio_stations"].append(station)
+        if not data.get("radio_station_id"):
+            data["radio_station_id"] = station["id"]
+        self.save(data)
+        return station
+
+    def remove_radio_station(self, station_id):
+        data = self.load()
+        kept = [station for station in data["radio_stations"] if station["id"] != station_id]
+        if len(kept) == len(data["radio_stations"]):
+            return None
+        removed = next(station for station in data["radio_stations"] if station["id"] == station_id)
+        data["radio_stations"] = kept
+        if data.get("radio_station_id") == station_id:
+            data["radio_station_id"] = kept[0]["id"] if kept else None
+        if not kept and data.get("music_source") == "radio":
+            data["music_source"] = "builtin"
+        self.save(data)
+        return removed
 
     def add_track(self, original_name, payload):
         suffix = Path(original_name).suffix.lower()
