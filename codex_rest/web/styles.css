@@ -90,6 +90,27 @@ button { color: inherit; }
   gap: 10px;
 }
 
+.radio-controls {
+  position: fixed;
+  z-index: 3;
+  top: 82px;
+  right: 24px;
+  width: min(340px, calc(100vw - 48px));
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--glass);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 8px 30px rgba(20, 9, 22, .13);
+}
+.radio-select-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
+.radio-select-row select { width: 100%; }
+.locked-radio { display: grid; gap: 4px; }
+.locked-radio span { font-size: 12px; color: var(--muted); }
+.locked-radio strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.radio-playback-status { min-height: 0; margin-top: 5px; font-size: 12px; color: #ffd5a5; }
+.radio-playback-status:empty { display: none; }
+
 .toggle, .quiet-button, .upload-button, .danger-button {
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -134,21 +155,31 @@ body.controls-visible .detail-controls, .detail-controls:focus-within { opacity:
 .setting-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; min-height: 54px; }
 .radio-row { display: block; margin: 14px 0; }
 select { color: #2e1c2d; padding: 8px; border-radius: 9px; }
+.source-options { margin-top: 20px; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.035); }
 .upload-button { display: inline-block; margin-top: 18px; padding: 11px 16px; }
 .status { min-height: 24px; margin-top: 10px; color: #ffd5a5; }
 .track-list { list-style: none; margin: 10px 0 0; padding: 0; }
 .track-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .track-list button { border: 0; background: transparent; cursor: pointer; color: #ffd5a5; }
+.station-details { display: grid; min-width: 0; gap: 4px; }
+.station-details strong, .station-details small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.station-details small { color: var(--muted); }
 .state-summary { margin: 16px 0 8px; font-weight: 600; color: #ffd5a5; }
 .setting-help { max-width: 60ch; color: var(--muted); line-height: 1.7; }
 .danger-button { margin-top: 8px; padding: 11px 16px; border-color: rgba(255, 198, 170, .44); }
 .danger-button:hover { background: rgba(143, 58, 68, .38); }
 .danger-button:disabled { cursor: not-allowed; opacity: .5; }
+.station-form { display: grid; grid-template-columns: minmax(120px, .7fr) minmax(220px, 1.3fr) auto; align-items: end; gap: 12px; margin-top: 14px; }
+.station-form label { display: grid; gap: 6px; font-size: 12px; color: var(--muted); }
+.station-form input { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--cream); background: rgba(25,12,28,.5); }
+.station-form .upload-button { min-height: 40px; margin: 0; }
 
 @media (max-width: 720px) {
   .quick-controls { left: 16px; right: 16px; justify-content: center; flex-wrap: wrap; }
+  .radio-controls { top: 132px; left: 16px; right: 16px; width: auto; }
   .detail-controls { left: 16px; right: 16px; flex-wrap: wrap; }
   .settings-card { padding: 28px 22px; }
+  .station-form { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

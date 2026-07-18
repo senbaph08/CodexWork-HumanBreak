@@ -35,6 +35,18 @@
       </button>
     </aside>
 
+    <aside id="radioControls" class="radio-controls" aria-label="インターネットラジオ" hidden>
+      <label id="selectableRadioControl" class="radio-select-row">
+        <span>ラジオ局</span>
+        <select id="radioStationSelect" aria-label="再生するラジオ局"></select>
+      </label>
+      <div id="lockedRadioControl" class="locked-radio" hidden>
+        <span>ランダム選局</span>
+        <strong id="lockedRadioName">選局中…</strong>
+      </div>
+      <div id="radioPlaybackStatus" class="radio-playback-status" role="status"></div>
+    </aside>
+
     <section id="detailControls" class="detail-controls" aria-label="詳細設定">
       <label>音楽音量 <input id="musicVolume" type="range" min="0" max="1" step="0.01"></label>
       <label>通知音量 <input id="chimeVolume" type="range" min="0" max="1" step="0.01"></label>
@@ -46,7 +58,7 @@
     <div class="settings-card">
       <div class="eyebrow">CODEX REST</div>
       <h1>休憩画面の設定</h1>
-      <p class="lead">音楽と完了通知はすべてこのMacの中だけで処理されます。</p>
+      <p class="lead">設定はこのMac内に保存され、ラジオ音声は登録した局へブラウザから直接接続します。</p>
 
       <section class="settings-section">
         <h2>再生</h2>
@@ -60,12 +72,36 @@
         <h2>音源</h2>
         <label class="radio-row"><input type="radio" name="musicSource" value="builtin"> 内蔵オリジナル曲</label>
         <label class="radio-row"><input type="radio" name="musicSource" value="playlist"> 自分のプレイリスト</label>
-        <label class="setting-row"><span>再生順</span>
-          <select id="playlistOrder"><option value="sequential">順番に再生</option><option value="shuffle">シャッフル</option></select>
-        </label>
-        <label class="upload-button">音源を追加<input id="trackUpload" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" multiple hidden></label>
-        <div id="uploadStatus" class="status" role="status"></div>
-        <ul id="trackList" class="track-list"></ul>
+        <label class="radio-row"><input type="radio" name="musicSource" value="radio"> インターネットラジオ</label>
+
+        <div id="playlistSettings" class="source-options">
+          <label class="setting-row"><span>再生順</span>
+            <select id="playlistOrder"><option value="sequential">順番に再生</option><option value="shuffle">シャッフル</option></select>
+          </label>
+          <label class="upload-button">音源を追加<input id="trackUpload" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" multiple hidden></label>
+          <div id="uploadStatus" class="status" role="status"></div>
+          <ul id="trackList" class="track-list"></ul>
+        </div>
+
+        <div id="radioSettings" class="source-options">
+          <label class="setting-row"><span>休憩画面での選局</span>
+            <select id="radioMode">
+              <option value="selectable">自分で局を変えられる</option>
+              <option value="random_locked">開始時にランダム選局・変更不可</option>
+            </select>
+          </label>
+          <label id="defaultRadioRow" class="setting-row"><span>最初に再生する局</span>
+            <select id="settingsRadioStation"></select>
+          </label>
+          <form id="radioStationForm" class="station-form">
+            <label><span>局名</span><input id="radioStationName" type="text" maxlength="120" placeholder="Quiet FM"></label>
+            <label><span>ストリームURL</span><input id="radioStationUrl" type="url" maxlength="2048" placeholder="https://example.com/live.mp3" required></label>
+            <button class="upload-button" type="submit">ラジオ局を追加</button>
+          </form>
+          <p class="setting-help">音声ストリームの直接URLを登録してください。局のWebページURLや一部のM3U/PLSは再生できない場合があります。</p>
+          <div id="radioStationStatus" class="status" role="status"></div>
+          <ul id="radioStationList" class="track-list"></ul>
+        </div>
       </section>
 
       <section class="settings-section reset-section" aria-labelledby="resetHeading">

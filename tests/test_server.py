@@ -154,6 +154,35 @@ class HTTPServerTests(unittest.TestCase):
         self.assertIn('id="resetTaskState"', page)
         self.assertIn("状態をリセット", page)
 
+    def test_radio_station_api_adds_and_removes_station(self):
+        body = b'{"name":"Quiet FM","url":"https://radio.example/live.mp3"}'
+        with self.request("/api/radio-stations", method="POST", body=body) as response:
+            station = __import__("json").loads(response.read().decode("utf-8"))
+        state = self.controller.snapshot()
+        self.assertEqual(state["settings"]["radio_stations"][0]["id"], station["id"])
+        with self.request("/api/radio-stations/{}".format(station["id"]), method="DELETE") as response:
+            self.assertEqual(response.status, 200)
+        self.assertEqual(self.controller.snapshot()["settings"]["radio_stations"], [])
+
+    def test_radio_station_api_rejects_non_http_url(self):
+        body = b'{"name":"Bad","url":"file:///tmp/music.mp3"}'
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            self.request("/api/radio-stations", method="POST", body=body)
+        self.assertEqual(caught.exception.code, 400)
+
+    def test_radio_station_api_rejects_non_object_json(self):
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            self.request("/api/radio-stations", method="POST", body=b"[]")
+        self.assertEqual(caught.exception.code, 400)
+
+    def test_settings_page_contains_radio_controls_and_media_csp(self):
+        with self.request("/settings", token=False) as response:
+            page = response.read().decode("utf-8")
+            csp = response.headers["Content-Security-Policy"]
+        self.assertIn('value="radio"', page)
+        self.assertIn('id="radioStationForm"', page)
+        self.assertIn("media-src 'self' blob: http: https:", csp)
+
     def test_track_upload_and_byte_range(self):
         with self.request(
             "/api/tracks", method="POST", body=b"0123456789",

@@ -14,6 +14,7 @@ import wave
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from . import __version__
 from .config import ConfigStore, MAX_TRACK_BYTES
 from .paths import (
     app_home, chrome_path, chrome_profile_dir, log_path, runtime_dir,
@@ -223,7 +224,7 @@ class RestHTTPServer(ThreadingHTTPServer):
 
 
 class RestRequestHandler(BaseHTTPRequestHandler):
-    server_version = "CodexRest/1.0"
+    server_version = "CodexRest/" + __version__
 
     @property
     def controller(self):
@@ -306,6 +307,11 @@ class RestRequestHandler(BaseHTTPRequestHandler):
                 })
             elif path == "/api/tracks":
                 self._upload_track()
+            elif path == "/api/radio-stations":
+                station = self.controller.config.add_radio_station(
+                    **self._radio_station_payload()
+                )
+                self._json(201, station)
             elif path == "/api/shutdown":
                 self._json(200, {"ok": True})
                 self.controller.stop()
@@ -325,8 +331,18 @@ class RestRequestHandler(BaseHTTPRequestHandler):
             track_id = path.rsplit("/", 1)[-1]
             removed = self.controller.config.remove_track(track_id)
             self._json(200 if removed else 404, {"removed": bool(removed)})
+        elif path.startswith("/api/radio-stations/"):
+            station_id = path.rsplit("/", 1)[-1]
+            removed = self.controller.config.remove_radio_station(station_id)
+            self._json(200 if removed else 404, {"removed": bool(removed)})
         else:
             self._json(404, {"error": "not found"})
+
+    def _radio_station_payload(self):
+        payload = self._read_json(16 * 1024)
+        if not isinstance(payload, dict):
+            raise ValueError("request body must be a JSON object")
+        return {"name": payload.get("name"), "url": payload.get("url")}
 
     def _upload_track(self):
         length = int(self.headers.get("Content-Length", "0"))
@@ -411,7 +427,7 @@ class RestRequestHandler(BaseHTTPRequestHandler):
         self.send_header(
             "Content-Security-Policy",
             "default-src 'self'; script-src 'self'; style-src 'self'; "
-            "media-src 'self' blob:; connect-src 'self'; img-src 'self' data:; "
+            "media-src 'self' blob: http: https:; connect-src 'self'; img-src 'self' data:; "
             "object-src 'none'; frame-ancestors 'none'; base-uri 'none'",
         )
         self.send_header("X-Content-Type-Options", "nosniff")
